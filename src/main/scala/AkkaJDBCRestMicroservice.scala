@@ -37,6 +37,7 @@ trait Protocols extends DefaultJsonProtocol {
       case db: Double => JsNumber(db)
       case b: Boolean if b == true => JsTrue
       case b: Boolean if b == false => JsFalse
+	  case null => JsNull
       case x => serializationError("Do not understand object of type " + x.getClass.getName)
     }
 
