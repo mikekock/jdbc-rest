@@ -1,4 +1,5 @@
 import java.sql.{Connection, DriverManager, ResultSet, Timestamp}
+import java.net.URLDecoder
 
 import akka.actor.ActorSystem
 import akka.event.{Logging, LoggingAdapter}
@@ -97,6 +98,8 @@ trait Service extends Protocols {
           cols += meta.getColumnName(a) -> rs.getDate(a)
         else if (meta.getColumnType(a) == java.sql.Types.DECIMAL || meta.getColumnType(a) == java.sql.Types.NUMERIC)
           cols += meta.getColumnName(a) -> rs.getBigDecimal(a).doubleValue()
+		else if (meta.getColumnType(a) == java.sql.Types.BOOLEAN)
+		  cols += meta.getColumnName(a) -> rs.getBoolean(a)
         else
           cols += meta.getColumnName(a) -> rs.getString(a)
       }
@@ -166,7 +169,7 @@ trait Service extends Protocols {
   }
 
   private val queryRoute = {
-    path("query" / Rest) { trace =>
+    path("select" / Rest) { trace =>
       (post & entity(as[QuerySQLRequest])) { query =>
         complete {
           querySQL(query.sql)
@@ -174,7 +177,7 @@ trait Service extends Protocols {
       }
       (post & entity(as[String])) { query =>
         complete {
-          querySQL(parseQueryString(query))
+          querySQL(parseQueryString(URLDecoder.decode(query)))
         }
       }
     }
@@ -188,7 +191,7 @@ trait Service extends Protocols {
     }
     (post & entity(as[String])) { executeSeq =>
       complete {
-        executeSQL(List(parseQueryString(executeSeq)))
+        executeSQL(List(parseQueryString(URLDecoder.decode(executeSeq))))
       }
     }
   }
