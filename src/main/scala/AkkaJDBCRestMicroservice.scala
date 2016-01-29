@@ -96,7 +96,7 @@ trait Service extends Protocols {
         else if (meta.getColumnType(a) == java.sql.Types.TIMESTAMP)
           cols += meta.getColumnName(a) -> rs.getTimestamp(a)
         else if (meta.getColumnType(a) == java.sql.Types.DATE)
-          cols += meta.getColumnName(a) -> rs.getDate(a)
+          cols += meta.getColumnName(a) -> rs.getTimestamp(a)
         else if (meta.getColumnType(a) == java.sql.Types.DECIMAL || meta.getColumnType(a) == java.sql.Types.NUMERIC)
           cols += meta.getColumnName(a) -> rs.getBigDecimal(a).doubleValue()
 		else if (meta.getColumnType(a) == java.sql.Types.BOOLEAN)
