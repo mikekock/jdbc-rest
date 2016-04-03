@@ -143,10 +143,10 @@ trait Service extends Protocols {
   }
 
 
-  private def executePrepared(conn: Connection, query: String): Unit =
+  private def executePreparedUpdate(conn: Connection, query: String): Unit =
   {
     val statement = conn.prepareStatement(query)
-    statement.execute(query)
+    statement.executeUpdate()
   }
 
   private def executeSQL(executeSQL: Seq[String]): ExecuteSQLResult = {
@@ -156,7 +156,7 @@ trait Service extends Protocols {
       try {
         conn.setAutoCommit(false)
         // Execute Query
-        executeSQL.foreach(executePrepared(conn, _))
+        executeSQL.foreach(executePreparedUpdate(conn, _))
 
         conn.commit()
 
