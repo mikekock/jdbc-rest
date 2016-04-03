@@ -15,8 +15,8 @@ import spray.json._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContextExecutor;
 
-case class QuerySQLRequest(sql: String)
-
+case class QueryPreparedStatementTypeValue(Type: String, Value: Any)
+case class QuerySQLRequest(sql: String, params: Option[Seq[QueryPreparedStatementTypeValue]])
 case class QuerySQLResult(result: Option[Seq[Map[String, Any]]], error: Option[String], message: Option[String], status: Option[String])
 
 case class ExecuteSQLRequest(sql: Seq[String])
@@ -50,7 +50,8 @@ trait Protocols extends DefaultJsonProtocol {
     }
   }
 
-  implicit val querySQLRequestFormat = jsonFormat1(QuerySQLRequest.apply)
+  implicit val queryPreparedStatementTypeValueFormat = jsonFormat2(QueryPreparedStatementTypeValue.apply)
+  implicit val querySQLRequestFormat = jsonFormat2(QuerySQLRequest.apply)
   implicit val querySQLResultFormat = jsonFormat4(QuerySQLResult.apply)
   implicit val executeSQLRequestFormat = jsonFormat1(ExecuteSQLRequest.apply)
   implicit val executeSQLResultFormat = jsonFormat4(ExecuteSQLResult.apply)
@@ -121,10 +122,10 @@ trait Service extends Protocols {
       val conn = getConnection()
       try {
         // Configure to be Read Only
-        val statement = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
+        val statement = conn.prepareStatement(query, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
 
         // Execute Query
-        val rs = statement.executeQuery(query)
+        val rs = statement.executeQuery()
 
         // Iterate Over ResultSet
         QuerySQLResult(Option(getResultSetRows(rs)), Option(""), Option(""), Option("success"))
@@ -142,16 +143,20 @@ trait Service extends Protocols {
   }
 
 
+  private def executePrepared(conn: Connection, query: String): Unit =
+  {
+    val statement = conn.prepareStatement(query)
+    statement.execute(query)
+  }
+
   private def executeSQL(executeSQL: Seq[String]): ExecuteSQLResult = {
     try {
       // Setup the connection
       val conn = getConnection()
       try {
         conn.setAutoCommit(false)
-        val statement = conn.createStatement
-
         // Execute Query
-        executeSQL.foreach(statement.execute(_))
+        executeSQL.foreach(executePrepared(conn, _))
 
         conn.commit()
 
