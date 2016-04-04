@@ -1,4 +1,4 @@
-import java.sql.{Connection, DriverManager, ResultSet, Timestamp}
+import java.sql._
 import java.net.URLDecoder
 
 import akka.actor.ActorSystem
@@ -15,7 +15,7 @@ import spray.json._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContextExecutor;
 
-case class QueryPreparedStatementTypeValue(Type: String, Value: Any)
+case class QueryPreparedStatementTypeValue(columnType: String, index: Int, value: Any)
 case class QuerySQLRequest(sql: String, params: Option[Seq[QueryPreparedStatementTypeValue]])
 case class QuerySQLResult(result: Option[Seq[Map[String, Any]]], error: Option[String], message: Option[String], status: Option[String])
 
@@ -50,7 +50,7 @@ trait Protocols extends DefaultJsonProtocol {
     }
   }
 
-  implicit val queryPreparedStatementTypeValueFormat = jsonFormat2(QueryPreparedStatementTypeValue.apply)
+  implicit val queryPreparedStatementTypeValueFormat = jsonFormat3(QueryPreparedStatementTypeValue.apply)
   implicit val querySQLRequestFormat = jsonFormat2(QuerySQLRequest.apply)
   implicit val querySQLResultFormat = jsonFormat4(QuerySQLResult.apply)
   implicit val executeSQLRequestFormat = jsonFormat1(ExecuteSQLRequest.apply)
@@ -142,6 +142,41 @@ trait Service extends Protocols {
     }
   }
 
+  private def setParam(statement: PreparedStatement, param: QueryPreparedStatementTypeValue): Unit = param.columnType match {
+    case "String" => statement.setString(param.index, getStringValue(param.value))
+    case "BigDecimal" => statement.setBigDecimal(param.index, getBigDecimalValue(param.value))
+    case "Timestamp" => statement.setTimestamp(param.index, getTimestampValue(param.value))
+    case _ => deserializationError("Do not understand how to deserialize param")
+  }
+
+  private def getStringValue(v: Any): String = {
+    val i = (v match {
+      case x:String => x
+      case _ => ""
+    })
+    i
+  }
+
+  private def getBigDecimalValue(v: Any): java.math.BigDecimal = {
+    val i = (v match {
+      case x:java.math.BigDecimal => x
+      case _ => java.math.BigDecimal.ZERO
+    })
+    i
+  }
+
+  private def getTimestampValue(v: Any): Timestamp = {
+    val i = (v match {
+      case x:Timestamp => x
+      case _ => new Timestamp(0)
+    })
+    i
+  }
+
+  private def applyParams(statement: PreparedStatement, params: Seq[QueryPreparedStatementTypeValue]): Unit =
+  {
+    params.map(p => setParam(statement, p))
+  }
 
   private def executePreparedUpdate(conn: Connection, query: String): Unit =
   {
