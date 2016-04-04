@@ -14,6 +14,11 @@ import spray.json._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContextExecutor;
+import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Date
+
 
 case class QueryPreparedStatementTypeValue(columnType: String, index: Int, value: Any)
 case class QuerySQLRequest(sql: String, params: Option[Seq[QueryPreparedStatementTypeValue]])
@@ -32,7 +37,11 @@ trait Protocols extends DefaultJsonProtocol {
       case s: Short => JsNumber(s)
       case s: String => JsString(s)
       case d: DateTime => JsString(d.toIsoDateTimeString())
-      case ts: Timestamp => JsString(DateTime(ts.getTime()).toIsoDateTimeString())
+      case ts: Timestamp => {
+        // Return a timestamp that includes the milliseconds.
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.n")
+        JsString(ts.toLocalDateTime().format(formatter))
+      }
       case bd: BigDecimal => JsNumber(bd)
       case db: Double => JsNumber(db)
       case b: Boolean if b == true => JsTrue
@@ -215,33 +224,38 @@ trait Service extends Protocols {
         complete {
           querySQL(query.sql)
         }
-      }
-      (post & entity(as[String])) { query =>
-        complete {
-          querySQL(parseQueryString(URLDecoder.decode(query)))
+      } ~
+        (post & entity(as[String])) { query =>
+          complete {
+            querySQL(parseQueryString(URLDecoder.decode(query)))
+          }
         }
-      }
     }
   }
 
-  private val executeRoute = path("execute" / Rest) { trace =>
-    (post & entity(as[ExecuteSQLRequest])) { executeSeq =>
-      complete {
-        executeSQL(executeSeq.sql)
-      }
-    }
-    (post & entity(as[String])) { executeSeq =>
-      complete {
-        executeSQL(List(parseQueryString(URLDecoder.decode(executeSeq))))
-      }
+  private val executeRoute = {
+    path("execute" / Rest) { trace =>
+      (post & entity(as[ExecuteSQLRequest])) { executeSeq =>
+        complete {
+          executeSQL(executeSeq.sql)
+        }
+      } ~
+        (post & entity(as[String])) { executeSeq =>
+          complete {
+            executeSQL(List(parseQueryString(URLDecoder.decode(executeSeq))))
+          }
+        }
     }
   }
-  val routes = {
+
+
+  val routes = encodeResponse {
     logRequestResult("akka-jdbc-rest") {
       pathPrefix(config.getString("http.url_base"))(queryRoute ~ executeRoute)
     }
   }
 }
+
 
 object AkkaJDBCRestMicroservice extends App with Service {
   override implicit val system = ActorSystem()
