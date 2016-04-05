@@ -24,7 +24,7 @@ case class QueryPreparedStatementTypeValue(columnType: String, index: Int, value
 case class QuerySQLRequest(sql: String, params: Option[Seq[QueryPreparedStatementTypeValue]])
 case class QuerySQLResult(result: Option[Seq[Map[String, Any]]], error: Option[String], message: Option[String], status: Option[String])
 
-case class ExecuteSQLRequest(sql: Seq[String])
+case class ExecuteSQLRequest(sql: String, params: Option[Seq[QueryPreparedStatementTypeValue]])
 
 case class ExecuteSQLResult(result: Long, error: Option[String], message: Option[String], status: Option[String])
 
@@ -62,7 +62,7 @@ trait Protocols extends DefaultJsonProtocol {
   implicit val queryPreparedStatementTypeValueFormat = jsonFormat3(QueryPreparedStatementTypeValue.apply)
   implicit val querySQLRequestFormat = jsonFormat2(QuerySQLRequest.apply)
   implicit val querySQLResultFormat = jsonFormat4(QuerySQLResult.apply)
-  implicit val executeSQLRequestFormat = jsonFormat1(ExecuteSQLRequest.apply)
+  implicit val executeSQLRequestFormat = jsonFormat2(ExecuteSQLRequest.apply)
   implicit val executeSQLResultFormat = jsonFormat4(ExecuteSQLResult.apply)
 }
 
@@ -125,13 +125,14 @@ trait Service extends Protocols {
   }
 
 
-  private def querySQL(query: String): ToResponseMarshallable = {
+  private def querySQL(query: String, params: Option[Seq[QueryPreparedStatementTypeValue]]): ToResponseMarshallable = {
     try {
       // Setup the connection
       val conn = getConnection()
       try {
         // Configure to be Read Only
         val statement = conn.prepareStatement(query, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
+        applyParams(statement, params)
 
         // Execute Query
         val rs = statement.executeQuery()
@@ -153,7 +154,8 @@ trait Service extends Protocols {
 
   private def setParam(statement: PreparedStatement, param: QueryPreparedStatementTypeValue): Unit = param.columnType match {
     case "String" => statement.setString(param.index, getStringValue(param.value))
-    case "BigDecimal" => statement.setBigDecimal(param.index, getBigDecimalValue(param.value))
+    case "Number" => statement.setBigDecimal(param.index, getBigDecimalValue(param.value))
+    case "Boolean" => statement.setBoolean(param.index, getBooleanValue(param.value))
     case "Timestamp" => statement.setTimestamp(param.index, getTimestampValue(param.value))
     case _ => deserializationError("Do not understand how to deserialize param")
   }
@@ -169,7 +171,17 @@ trait Service extends Protocols {
   private def getBigDecimalValue(v: Any): java.math.BigDecimal = {
     val i = (v match {
       case x:java.math.BigDecimal => x
+      case s:String => new java.math.BigDecimal(s)
       case _ => java.math.BigDecimal.ZERO
+    })
+    i
+  }
+
+  private def getBooleanValue(v: Any): Boolean = {
+    val i = (v match {
+      case x:Boolean => x
+      case s:String => s.toBoolean
+      case _ => false
     })
     i
   }
@@ -177,30 +189,36 @@ trait Service extends Protocols {
   private def getTimestampValue(v: Any): Timestamp = {
     val i = (v match {
       case x:Timestamp => x
+      //case s:String => new Timestamp(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.n").parse(s).getLong)
       case _ => new Timestamp(0)
     })
     i
   }
 
-  private def applyParams(statement: PreparedStatement, params: Seq[QueryPreparedStatementTypeValue]): Unit =
+  private def applyParams(statement: PreparedStatement, params: Option[Seq[QueryPreparedStatementTypeValue]]): Unit =
   {
-    params.map(p => setParam(statement, p))
+    params match {
+      case Some(x) => x.foreach(p => setParam(statement, p))
+      case None =>
+    }
+
   }
 
-  private def executePreparedUpdate(conn: Connection, query: String): Unit =
+  private def executePreparedUpdate(conn: Connection, query: String, params: Option[Seq[QueryPreparedStatementTypeValue]]): Unit =
   {
     val statement = conn.prepareStatement(query)
+    applyParams(statement, params)
     statement.executeUpdate()
   }
 
-  private def executeSQL(executeSQL: Seq[String]): ExecuteSQLResult = {
+  private def executeSQL(executeSQL: Seq[ExecuteSQLRequest]): ExecuteSQLResult = {
     try {
       // Setup the connection
       val conn = getConnection()
       try {
         conn.setAutoCommit(false)
         // Execute Query
-        executeSQL.foreach(executePreparedUpdate(conn, _))
+        executeSQL.foreach((x: ExecuteSQLRequest) => executePreparedUpdate(conn, x.sql, x.params))
 
         conn.commit()
 
@@ -222,12 +240,12 @@ trait Service extends Protocols {
     path("select" / Rest) { trace =>
       (post & entity(as[QuerySQLRequest])) { query =>
         complete {
-          querySQL(query.sql)
+          querySQL(query.sql, query.params)
         }
       } ~
         (post & entity(as[String])) { query =>
           complete {
-            querySQL(parseQueryString(URLDecoder.decode(query)))
+            querySQL(parseQueryString(URLDecoder.decode(query)), None)
           }
         }
     }
@@ -235,14 +253,15 @@ trait Service extends Protocols {
 
   private val executeRoute = {
     path("execute" / Rest) { trace =>
-      (post & entity(as[ExecuteSQLRequest])) { executeSeq =>
+      (post & entity(as[Seq[ExecuteSQLRequest]])) { executeSeq =>
         complete {
-          executeSQL(executeSeq.sql)
+          executeSQL(executeSeq)
         }
       } ~
         (post & entity(as[String])) { executeSeq =>
           complete {
-            executeSQL(List(parseQueryString(URLDecoder.decode(executeSeq))))
+            val q = List(ExecuteSQLRequest(parseQueryString(URLDecoder.decode(executeSeq)), None))
+            executeSQL(q)
           }
         }
     }
