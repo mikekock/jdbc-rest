@@ -161,37 +161,37 @@ trait Service extends Protocols {
   }
 
   private def getStringValue(v: Any): String = {
-    val i = (v match {
-      case x:String => x
+    val i = v match {
+      case x: String => x
       case _ => ""
-    })
+    }
     i
   }
 
   private def getBigDecimalValue(v: Any): java.math.BigDecimal = {
-    val i = (v match {
-      case x:java.math.BigDecimal => x
-      case s:String => new java.math.BigDecimal(s)
+    val i = v match {
+      case x: java.math.BigDecimal => x
+      case s: String => new java.math.BigDecimal(s)
       case _ => java.math.BigDecimal.ZERO
-    })
+    }
     i
   }
 
   private def getBooleanValue(v: Any): Boolean = {
-    val i = (v match {
-      case x:Boolean => x
-      case s:String => s.toBoolean
+    val i = v match {
+      case x: Boolean => x
+      case s: String => s.toBoolean
       case _ => false
-    })
+    }
     i
   }
 
   private def getTimestampValue(v: Any): Timestamp = {
-    val i = (v match {
-      case x:Timestamp => x
+    val i = v match {
+      case x: Timestamp => x
       //case s:String => new Timestamp(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.n").parse(s).getLong)
       case _ => new Timestamp(0)
-    })
+    }
     i
   }
 
