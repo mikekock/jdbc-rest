@@ -153,47 +153,13 @@ trait Service extends Protocols {
   }
 
   private def setParam(statement: PreparedStatement, param: QueryPreparedStatementTypeValue): Unit = param.columnType match {
-    case "String" => statement.setString(param.index, getStringValue(param.value))
-    case "Number" => statement.setBigDecimal(param.index, getBigDecimalValue(param.value))
-    case "Boolean" => statement.setBoolean(param.index, getBooleanValue(param.value))
-    case "Timestamp" => statement.setTimestamp(param.index, Timestamp.valueOf(getLocalDateTime(param.value)))
+    case "String" => statement.setString(param.index, AnyConversions.getStringValue(param.value))
+    case "Number" => statement.setBigDecimal(param.index, AnyConversions.getBigDecimalValue(param.value).bigDecimal)
+    case "Boolean" => statement.setBoolean(param.index, AnyConversions.getBooleanValue(param.value))
+    case "Timestamp" => statement.setTimestamp(param.index, Timestamp.valueOf(AnyConversions.getLocalDateTime(param.value)))
     case _ => deserializationError("Do not understand how to deserialize param")
   }
 
-  private def getStringValue(v: Any): String = {
-    val i = v match {
-      case x: String => x
-      case _ => ""
-    }
-    i
-  }
-
-  private def getBigDecimalValue(v: Any): java.math.BigDecimal = {
-    val i = v match {
-      case x: java.math.BigDecimal => x
-      case s: String => new java.math.BigDecimal(s)
-      case _ => java.math.BigDecimal.ZERO
-    }
-    i
-  }
-
-  private def getBooleanValue(v: Any): Boolean = {
-    val i = v match {
-      case x: Boolean => x
-      case s: String => s.toBoolean
-      case _ => false
-    }
-    i
-  }
-
-  private def getLocalDateTime(v: Any): LocalDateTime = {
-    val i = v match {
-      case x: LocalDateTime => x
-      case s:String => LocalDateTime.parse(s, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.n"))
-      case _ => LocalDateTime.now()
-    }
-    i
-  }
 
   private def applyParams(statement: PreparedStatement, params: Option[Seq[QueryPreparedStatementTypeValue]]): Unit =
   {
