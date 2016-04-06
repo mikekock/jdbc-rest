@@ -10,5 +10,4 @@ class ServiceSpec extends FlatSpec with Matchers with ScalatestRouteTest with Se
   override def testConfigSource = "akka.loglevel = WARNING"
   override def config = testConfig
   override val logger = NoLogging
-
 }

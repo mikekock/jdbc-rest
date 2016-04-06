@@ -156,7 +156,7 @@ trait Service extends Protocols {
     case "String" => statement.setString(param.index, getStringValue(param.value))
     case "Number" => statement.setBigDecimal(param.index, getBigDecimalValue(param.value))
     case "Boolean" => statement.setBoolean(param.index, getBooleanValue(param.value))
-    case "Timestamp" => statement.setTimestamp(param.index, getTimestampValue(param.value))
+    case "Timestamp" => statement.setTimestamp(param.index, Timestamp.valueOf(getLocalDateTime(param.value)))
     case _ => deserializationError("Do not understand how to deserialize param")
   }
 
@@ -186,11 +186,11 @@ trait Service extends Protocols {
     i
   }
 
-  private def getTimestampValue(v: Any): Timestamp = {
+  private def getLocalDateTime(v: Any): LocalDateTime = {
     val i = v match {
-      case x: Timestamp => x
-      //case s:String => new Timestamp(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.n").parse(s).getLong)
-      case _ => new Timestamp(0)
+      case x: LocalDateTime => x
+      case s:String => LocalDateTime.parse(s, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.n"))
+      case _ => LocalDateTime.now()
     }
     i
   }
