@@ -10,6 +10,12 @@ $ sbt
 With the service up, you can start sending HTTP requests:
 
 ```
+mysql --user=root --password=123456 scala
+
+curl -X POST -H 'Content-Type: application/json' http://localhost:9000/base/execute/trace1 -d '[{"sql": "CREATE TABLE IF NOT EXISTS jdbc_rest_test (id INT NOT NULL, s VARCHAR(255), dttm DATETIME, ts TIMESTAMP, b TINYINT, d DOUBLE, dc DECIMAL, bi BIGINT, PRIMARY KEY (id))"}]'
+curl -X POST -H 'Content-Type: application/json' http://localhost:9000/base/execute/trace1 -d '[{"sql": "INSERT INTO jdbc_rest_test (id, s, dttm, ts, b, d, dc, bi) VALUES (1, '"'One', '2016-01-02 01:23:45', '2016-01-03 1:23:45.123456789', 1, 1.2345, 1.23456789, 123456789012345)"'"}]'
+
+
 
 
 curl -X POST -H 'Content-Type: application/json' http://localhost:9000/base/select/trace1 -d '{"sql": "SELECT * FROM table"}'
