@@ -241,7 +241,7 @@ trait Service extends Protocols {
       } ~
         (post & entity(as[String])) { query =>
           complete {
-            querySQL(parseQueryString(URLDecoder.decode(query)), None)
+            querySQL(parseQueryString(URLDecoder.decode(query, "UTF-8")), None)
           }
         }
     }
@@ -256,7 +256,7 @@ trait Service extends Protocols {
       } ~
         (post & entity(as[String])) { executeSeq =>
           complete {
-            val q = List(ExecuteSQLRequest(parseQueryString(URLDecoder.decode(executeSeq)), None))
+            val q = List(ExecuteSQLRequest(parseQueryString(URLDecoder.decode(executeSeq, "UTF-8")), None))
             executeSQL(q)
           }
         }
