@@ -12,10 +12,12 @@ object AnyConversions {
   }
 
   def getBigDecimalValue(v: Any): BigDecimal = {
+    val s = v.getClass.getSimpleName
+
     val i = v match {
-      case x: BigDecimal => x
+      case bd: BigDecimal => bd
+      case jbd: java.math.BigDecimal => scala.math.BigDecimal(jbd)
       case x: Double => BigDecimal(x)
-      //case x: Float => BigDecimal(x)
       case x: Long => BigDecimal(x)
       case x: Int => BigDecimal(x)
       case s: String => BigDecimal(s)

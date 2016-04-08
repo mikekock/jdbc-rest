@@ -38,4 +38,9 @@ class AnyConversionsSpec extends FlatSpec with Matchers {
     assert(AnyConversions.getBigDecimalValue("1.23456789").doubleValue() === 1.23456789 /*+- 0.0001*/)
     info("OK")
   }
+
+  it should "convert 1.23456789 to 1.23456789" in {
+    assert(AnyConversions.getBigDecimalValue(BigDecimal("1.23456789")).doubleValue() === 1.23456789 /*+- 0.0001*/)
+    info("OK")
+  }
 }

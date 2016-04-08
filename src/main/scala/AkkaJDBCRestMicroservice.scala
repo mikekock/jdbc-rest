@@ -14,10 +14,10 @@ import spray.json._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContextExecutor;
-import java.text.SimpleDateFormat
-import java.time.LocalDateTime
+//import java.text.SimpleDateFormat
+//import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.Date
+//import java.util.Date
 
 
 case class QueryPreparedStatementTypeValue(columnType: String, index: Int, value: Any)
@@ -51,7 +51,7 @@ trait Protocols extends DefaultJsonProtocol {
     }
 
     def read(value: JsValue) = value match {
-      case JsNumber(l) => l.bigDecimal // l.longValue()
+      case JsNumber(l) => scala.math.BigDecimal(l.bigDecimal)
       case JsString(s) => s
       case JsTrue => true
       case JsFalse => false
