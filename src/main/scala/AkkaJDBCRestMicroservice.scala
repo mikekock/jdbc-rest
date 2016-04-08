@@ -90,6 +90,8 @@ trait Service extends Protocols {
     }
   }
 
+//  private def handleResultSetValue(o: Object)
+
   private def getResultSetRows(rs: ResultSet): ListBuffer[Map[String, Any]] = {
     val rows = collection.mutable.ListBuffer[Map[String, Any]]()
 
@@ -99,20 +101,48 @@ trait Service extends Protocols {
       var cols = collection.mutable.Map[String, Any]()
       var a = 1
       for (a <- 1 to columnCount) {
-        if (meta.getColumnType(a) == java.sql.Types.BIGINT || meta.getColumnType(a) == java.sql.Types.INTEGER || meta.getColumnType(a) == java.sql.Types.SMALLINT || meta.getColumnType(a) == java.sql.Types.TINYINT)
-          cols += meta.getColumnName(a) -> rs.getLong(a)
-        else if (meta.getColumnType(a) == java.sql.Types.FLOAT || meta.getColumnType(a) == java.sql.Types.DOUBLE || meta.getColumnType(a) == java.sql.Types.REAL)
-          cols += meta.getColumnName(a) -> rs.getDouble(a)
-        else if (meta.getColumnType(a) == java.sql.Types.TIMESTAMP)
-          cols += meta.getColumnName(a) -> rs.getTimestamp(a)
-        else if (meta.getColumnType(a) == java.sql.Types.DATE)
-          cols += meta.getColumnName(a) -> rs.getTimestamp(a)
-        else if (meta.getColumnType(a) == java.sql.Types.DECIMAL || meta.getColumnType(a) == java.sql.Types.NUMERIC)
-          cols += meta.getColumnName(a) -> rs.getBigDecimal(a).doubleValue()
-		else if (meta.getColumnType(a) == java.sql.Types.BOOLEAN)
-		  cols += meta.getColumnName(a) -> rs.getBoolean(a)
-        else
-          cols += meta.getColumnName(a) -> rs.getString(a)
+        if (meta.getColumnType(a) == java.sql.Types.BIGINT || meta.getColumnType(a) == java.sql.Types.INTEGER || meta.getColumnType(a) == java.sql.Types.SMALLINT || meta.getColumnType(a) == java.sql.Types.TINYINT) {
+          val v = rs.getLong(a)
+          if (!rs.wasNull()) {
+            cols += meta.getColumnName(a) -> v
+          }
+        }
+        else if (meta.getColumnType(a) == java.sql.Types.FLOAT || meta.getColumnType(a) == java.sql.Types.DOUBLE || meta.getColumnType(a) == java.sql.Types.REAL) {
+          val v = rs.getDouble(a)
+          if (!rs.wasNull()) {
+            cols += meta.getColumnName(a) -> v
+          }
+        }
+        else if (meta.getColumnType(a) == java.sql.Types.TIMESTAMP) {
+          val v = rs.getTimestamp(a)
+          if (!rs.wasNull()) {
+            cols += meta.getColumnName(a) -> v
+          }
+        }
+        else if (meta.getColumnType(a) == java.sql.Types.DATE) {
+          val v = rs.getTimestamp(a)
+          if (!rs.wasNull()) {
+            cols += meta.getColumnName(a) -> v
+          }
+        }
+        else if (meta.getColumnType(a) == java.sql.Types.DECIMAL || meta.getColumnType(a) == java.sql.Types.NUMERIC) {
+          val v = rs.getBigDecimal(a)
+          if (!rs.wasNull()) {
+            cols += meta.getColumnName(a) -> v.doubleValue()
+          }
+        }
+        else if (meta.getColumnType(a) == java.sql.Types.BOOLEAN) {
+          val v = rs.getBoolean(a)
+          if (!rs.wasNull()) {
+            cols += meta.getColumnName(a) -> v
+          }
+        }
+        else {
+          val v = rs.getString(a)
+          if (!rs.wasNull()) {
+            cols += meta.getColumnName(a) -> v
+          }
+        }
       }
       rows += cols.toMap
     }
