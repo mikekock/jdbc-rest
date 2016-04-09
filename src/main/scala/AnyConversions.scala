@@ -38,7 +38,7 @@ object AnyConversions {
   def getLocalDateTime(v: Any): LocalDateTime = {
     val i = v match {
       case x: LocalDateTime => x
-      case s:String => LocalDateTime.parse(s, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.n"))
+      case s: String => LocalDateTime.parse(s, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.n"))
       case _ => LocalDateTime.now()
     }
     i

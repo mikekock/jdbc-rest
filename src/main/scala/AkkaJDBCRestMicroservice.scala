@@ -1,5 +1,6 @@
-import java.sql._
 import java.net.URLDecoder
+import java.sql._
+import java.time.format.DateTimeFormatter
 
 import akka.actor.ActorSystem
 import akka.event.{Logging, LoggingAdapter}
@@ -13,15 +14,16 @@ import com.typesafe.config.{Config, ConfigFactory}
 import spray.json._
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.ExecutionContextExecutor;
-import java.time.format.DateTimeFormatter
+import scala.concurrent.ExecutionContextExecutor
 
 case class SQLPreparedStatementTypeValue(columnType: String, index: Int, value: Any)
 
 case class QuerySQLRequest(sql: String, params: Option[Seq[SQLPreparedStatementTypeValue]])
+
 case class QuerySQLResult(result: Option[Seq[Map[String, Any]]], error: Option[String], message: Option[String], status: Option[String])
 
 case class ExecuteSQLRequest(sql: String, params: Option[Seq[SQLPreparedStatementTypeValue]])
+
 case class ExecuteSQLResult(result: Long, error: Option[String], message: Option[String], status: Option[String])
 
 trait Protocols extends DefaultJsonProtocol {
@@ -87,15 +89,14 @@ trait Service extends Protocols {
     }
   }
 
-  private def getRSValueWithNull(v: Any, rs: ResultSet): Any =
-  {
+  private def getRSValueWithNull(v: Any, rs: ResultSet): Any = {
     if (rs.wasNull())
       null
     else
       v
   }
 
-//  private def handleResultSetValue(o: Object)
+  //  private def handleResultSetValue(o: Object)
 
   private def getResultSetRows(rs: ResultSet): ListBuffer[Map[String, Any]] = {
     val rows = collection.mutable.ListBuffer[Map[String, Any]]()
@@ -119,13 +120,13 @@ trait Service extends Protocols {
           cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getTimestamp(a), rs)
         }
         else if (meta.getColumnType(a) == java.sql.Types.DECIMAL || meta.getColumnType(a) == java.sql.Types.NUMERIC) {
-          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getBigDecimal(a), rs)//v.doubleValue()
+          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getBigDecimal(a), rs) //v.doubleValue()
         }
         else if (meta.getColumnType(a) == java.sql.Types.BOOLEAN) {
           cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getBoolean(a), rs)
         }
         else {
-            cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getString(a), rs)
+          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getString(a), rs)
         }
       }
       rows += cols.toMap
@@ -175,8 +176,7 @@ trait Service extends Protocols {
   }
 
 
-  private def applyParams(statement: PreparedStatement, params: Option[Seq[SQLPreparedStatementTypeValue]]): Unit =
-  {
+  private def applyParams(statement: PreparedStatement, params: Option[Seq[SQLPreparedStatementTypeValue]]): Unit = {
     params match {
       case Some(x) => x.foreach(p => setParam(statement, p))
       case None =>
@@ -184,8 +184,7 @@ trait Service extends Protocols {
 
   }
 
-  private def executePreparedUpdate(conn: Connection, query: String, params: Option[Seq[SQLPreparedStatementTypeValue]]): Unit =
-  {
+  private def executePreparedUpdate(conn: Connection, query: String, params: Option[Seq[SQLPreparedStatementTypeValue]]): Unit = {
     val statement = conn.prepareStatement(query)
     applyParams(statement, params)
     statement.executeUpdate()
