@@ -14,11 +14,7 @@ import spray.json._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContextExecutor;
-//import java.text.SimpleDateFormat
-//import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-//import java.util.Date
-
 
 case class QueryPreparedStatementTypeValue(columnType: String, index: Int, value: Any)
 case class QuerySQLRequest(sql: String, params: Option[Seq[QueryPreparedStatementTypeValue]])
@@ -32,6 +28,7 @@ trait Protocols extends DefaultJsonProtocol {
 
   implicit object AnyJsonFormat extends JsonFormat[Any] {
     def write(x: Any) = x match {
+      case null => JsNull
       case n: Int => JsNumber(n)
       case l: Long => JsNumber(l)
       case s: Short => JsNumber(s)
@@ -42,11 +39,12 @@ trait Protocols extends DefaultJsonProtocol {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.n")
         JsString(ts.toLocalDateTime().format(formatter))
       }
-      case bd: BigDecimal => JsNumber(bd)
+      case bd: BigDecimal => JsNumber(bd.doubleValue())
+      case bd:
+        java.math.BigDecimal => JsNumber(bd.doubleValue())
       case db: Double => JsNumber(db)
       case b: Boolean if b == true => JsTrue
       case b: Boolean if b == false => JsFalse
-	  case null => JsNull
       case x => serializationError("Do not understand object of type " + x.getClass.getName)
     }
 
@@ -90,6 +88,14 @@ trait Service extends Protocols {
     }
   }
 
+  private def getRSValueWithNull(v: Any, rs: ResultSet): Any =
+  {
+    if (rs.wasNull())
+      null
+    else
+      v
+  }
+
 //  private def handleResultSetValue(o: Object)
 
   private def getResultSetRows(rs: ResultSet): ListBuffer[Map[String, Any]] = {
@@ -102,46 +108,25 @@ trait Service extends Protocols {
       var a = 1
       for (a <- 1 to columnCount) {
         if (meta.getColumnType(a) == java.sql.Types.BIGINT || meta.getColumnType(a) == java.sql.Types.INTEGER || meta.getColumnType(a) == java.sql.Types.SMALLINT || meta.getColumnType(a) == java.sql.Types.TINYINT) {
-          val v = rs.getLong(a)
-          if (!rs.wasNull()) {
-            cols += meta.getColumnName(a) -> v
-          }
+          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getLong(a), rs)
         }
         else if (meta.getColumnType(a) == java.sql.Types.FLOAT || meta.getColumnType(a) == java.sql.Types.DOUBLE || meta.getColumnType(a) == java.sql.Types.REAL) {
-          val v = rs.getDouble(a)
-          if (!rs.wasNull()) {
-            cols += meta.getColumnName(a) -> v
-          }
+          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getDouble(a), rs)
         }
         else if (meta.getColumnType(a) == java.sql.Types.TIMESTAMP) {
-          val v = rs.getTimestamp(a)
-          if (!rs.wasNull()) {
-            cols += meta.getColumnName(a) -> v
-          }
+          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getTimestamp(a), rs)
         }
         else if (meta.getColumnType(a) == java.sql.Types.DATE) {
-          val v = rs.getTimestamp(a)
-          if (!rs.wasNull()) {
-            cols += meta.getColumnName(a) -> v
-          }
+          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getTimestamp(a), rs)
         }
         else if (meta.getColumnType(a) == java.sql.Types.DECIMAL || meta.getColumnType(a) == java.sql.Types.NUMERIC) {
-          val v = rs.getBigDecimal(a)
-          if (!rs.wasNull()) {
-            cols += meta.getColumnName(a) -> v.doubleValue()
-          }
+          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getBigDecimal(a), rs)//v.doubleValue()
         }
         else if (meta.getColumnType(a) == java.sql.Types.BOOLEAN) {
-          val v = rs.getBoolean(a)
-          if (!rs.wasNull()) {
-            cols += meta.getColumnName(a) -> v
-          }
+          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getBoolean(a), rs)
         }
         else {
-          val v = rs.getString(a)
-          if (!rs.wasNull()) {
-            cols += meta.getColumnName(a) -> v
-          }
+            cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getString(a), rs)
         }
       }
       rows += cols.toMap
