@@ -16,12 +16,12 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContextExecutor;
 import java.time.format.DateTimeFormatter
 
-case class QueryPreparedStatementTypeValue(columnType: String, index: Int, value: Any)
-case class QuerySQLRequest(sql: String, params: Option[Seq[QueryPreparedStatementTypeValue]])
+case class SQLPreparedStatementTypeValue(columnType: String, index: Int, value: Any)
+
+case class QuerySQLRequest(sql: String, params: Option[Seq[SQLPreparedStatementTypeValue]])
 case class QuerySQLResult(result: Option[Seq[Map[String, Any]]], error: Option[String], message: Option[String], status: Option[String])
 
-case class ExecuteSQLRequest(sql: String, params: Option[Seq[QueryPreparedStatementTypeValue]])
-
+case class ExecuteSQLRequest(sql: String, params: Option[Seq[SQLPreparedStatementTypeValue]])
 case class ExecuteSQLResult(result: Long, error: Option[String], message: Option[String], status: Option[String])
 
 trait Protocols extends DefaultJsonProtocol {
@@ -40,8 +40,7 @@ trait Protocols extends DefaultJsonProtocol {
         JsString(ts.toLocalDateTime().format(formatter))
       }
       case bd: BigDecimal => JsNumber(bd.doubleValue())
-      case bd:
-        java.math.BigDecimal => JsNumber(bd.doubleValue())
+      case bd: java.math.BigDecimal => JsNumber(bd.doubleValue())
       case db: Double => JsNumber(db)
       case b: Boolean if b == true => JsTrue
       case b: Boolean if b == false => JsFalse
@@ -57,7 +56,7 @@ trait Protocols extends DefaultJsonProtocol {
     }
   }
 
-  implicit val queryPreparedStatementTypeValueFormat = jsonFormat3(QueryPreparedStatementTypeValue.apply)
+  implicit val sqlPreparedStatementTypeValueFormat = jsonFormat3(SQLPreparedStatementTypeValue.apply)
   implicit val querySQLRequestFormat = jsonFormat2(QuerySQLRequest.apply)
   implicit val querySQLResultFormat = jsonFormat4(QuerySQLResult.apply)
   implicit val executeSQLRequestFormat = jsonFormat2(ExecuteSQLRequest.apply)
@@ -140,7 +139,7 @@ trait Service extends Protocols {
   }
 
 
-  private def querySQL(query: String, params: Option[Seq[QueryPreparedStatementTypeValue]]): ToResponseMarshallable = {
+  private def querySQL(query: String, params: Option[Seq[SQLPreparedStatementTypeValue]]): ToResponseMarshallable = {
     try {
       // Setup the connection
       val conn = getConnection()
@@ -167,7 +166,7 @@ trait Service extends Protocols {
     }
   }
 
-  private def setParam(statement: PreparedStatement, param: QueryPreparedStatementTypeValue): Unit = param.columnType match {
+  private def setParam(statement: PreparedStatement, param: SQLPreparedStatementTypeValue): Unit = param.columnType match {
     case "String" => statement.setString(param.index, AnyConversions.getStringValue(param.value))
     case "Number" => statement.setBigDecimal(param.index, AnyConversions.getBigDecimalValue(param.value).bigDecimal)
     case "Boolean" => statement.setBoolean(param.index, AnyConversions.getBooleanValue(param.value))
@@ -176,7 +175,7 @@ trait Service extends Protocols {
   }
 
 
-  private def applyParams(statement: PreparedStatement, params: Option[Seq[QueryPreparedStatementTypeValue]]): Unit =
+  private def applyParams(statement: PreparedStatement, params: Option[Seq[SQLPreparedStatementTypeValue]]): Unit =
   {
     params match {
       case Some(x) => x.foreach(p => setParam(statement, p))
@@ -185,7 +184,7 @@ trait Service extends Protocols {
 
   }
 
-  private def executePreparedUpdate(conn: Connection, query: String, params: Option[Seq[QueryPreparedStatementTypeValue]]): Unit =
+  private def executePreparedUpdate(conn: Connection, query: String, params: Option[Seq[SQLPreparedStatementTypeValue]]): Unit =
   {
     val statement = conn.prepareStatement(query)
     applyParams(statement, params)
