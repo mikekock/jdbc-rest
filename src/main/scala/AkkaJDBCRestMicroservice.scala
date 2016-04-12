@@ -106,29 +106,31 @@ trait Service extends Protocols {
       var cols = collection.mutable.Map[String, Any]()
       var a = 1
       for (a <- 1 to columnCount) {
-        if (meta.getColumnType(a) == java.sql.Types.BIGINT || meta.getColumnType(a) == java.sql.Types.INTEGER || meta.getColumnType(a) == java.sql.Types.SMALLINT || meta.getColumnType(a) == java.sql.Types.TINYINT) {
-          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getLong(a), rs)
+        val columnType = meta.getColumnType(a)
+        val columnName = meta.getColumnName(a)
+        if (columnType == java.sql.Types.BIGINT || columnType == java.sql.Types.INTEGER || columnType == java.sql.Types.SMALLINT || columnType == java.sql.Types.TINYINT) {
+          cols += columnName -> getRSValueWithNull(rs.getLong(a), rs)
         }
-        else if (meta.getColumnType(a) == java.sql.Types.FLOAT || meta.getColumnType(a) == java.sql.Types.DOUBLE || meta.getColumnType(a) == java.sql.Types.REAL) {
-          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getDouble(a), rs)
+        else if (columnType == java.sql.Types.FLOAT || columnType == java.sql.Types.DOUBLE || columnType == java.sql.Types.REAL) {
+          cols += columnName -> getRSValueWithNull(rs.getDouble(a), rs)
         }
-        else if (meta.getColumnType(a) == java.sql.Types.TIMESTAMP) {
-          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getTimestamp(a), rs)
+        else if (columnType == java.sql.Types.TIMESTAMP) {
+          cols += columnName -> getRSValueWithNull(rs.getTimestamp(a), rs)
         }
-        else if (meta.getColumnType(a) == java.sql.Types.DATE) {
-          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getTimestamp(a), rs)
+        else if (columnType == java.sql.Types.DATE) {
+          cols += columnName -> getRSValueWithNull(rs.getTimestamp(a), rs)
         }
-        else if (meta.getColumnType(a) == java.sql.Types.DECIMAL || meta.getColumnType(a) == java.sql.Types.NUMERIC) {
-          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getBigDecimal(a), rs)
+        else if (columnType == java.sql.Types.DECIMAL || columnType == java.sql.Types.NUMERIC) {
+          cols += columnName -> getRSValueWithNull(rs.getBigDecimal(a), rs)
         }
-        else if (meta.getColumnType(a) == java.sql.Types.BINARY || meta.getColumnType(a) == java.sql.Types.VARBINARY) {
-          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getBytes(a), rs)
+        else if (columnType == java.sql.Types.BINARY || columnType == java.sql.Types.VARBINARY) {
+          cols += columnName -> getRSValueWithNull(rs.getBytes(a), rs)
         }
-        else if (meta.getColumnType(a) == java.sql.Types.BOOLEAN) {
-          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getBoolean(a), rs)
+        else if (columnType == java.sql.Types.BOOLEAN) {
+          cols += columnName -> getRSValueWithNull(rs.getBoolean(a), rs)
         }
         else {
-          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getString(a), rs)
+          cols += columnName -> getRSValueWithNull(rs.getString(a), rs)
         }
       }
       rows += cols.toMap
