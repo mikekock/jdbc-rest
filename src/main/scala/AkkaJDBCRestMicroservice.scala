@@ -6,14 +6,14 @@ import akka.actor.ActorSystem
 import akka.event.{Logging, LoggingAdapter}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.marshalling.ToResponseMarshallable
+//import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model.DateTime
 import akka.http.scaladsl.server.Directives._
 import akka.stream.{ActorMaterializer, Materializer}
 import com.typesafe.config.{Config, ConfigFactory}
 import spray.json._
 
-import scala.collection.mutable.ListBuffer
+//import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContextExecutor
 
 case class SQLPreparedStatementTypeValue(columnType: String, index: Int, value: Any)
@@ -77,152 +77,24 @@ trait Service extends Protocols {
 
   val logger: LoggingAdapter
 
-  def getConnection(): Connection = {
-    val conn_str = config.getString("db.connection")
-    // Get the connection
-    try {
-      DriverManager.getConnection(conn_str)
-    } catch {
-      case e: Exception => {
-        println("ERROR: No connection: " + e.getMessage)
-        throw e
-      }
-    }
-  }
-
-  private def getRSValueWithNull(v: Any, rs: ResultSet): Any = {
-    if (rs.wasNull())
-      null
-    else
-      v
-  }
-
-  private def getResultSetRows(rs: ResultSet): ListBuffer[Map[String, Any]] = {
-    val rows = collection.mutable.ListBuffer[Map[String, Any]]()
-
-    while (rs.next) {
-      val meta = rs.getMetaData()
-      val columnCount = meta.getColumnCount()
-      var cols = collection.mutable.Map[String, Any]()
-      var a = 1
-      for (a <- 1 to columnCount) {
-        val columnType = meta.getColumnType(a)
-        val columnName = meta.getColumnName(a)
-        columnType match {
-          case java.sql.Types.BIGINT => cols += columnName -> getRSValueWithNull(rs.getLong(a), rs)
-          case java.sql.Types.INTEGER => cols += columnName -> getRSValueWithNull(rs.getLong(a), rs)
-          case java.sql.Types.SMALLINT => cols += columnName -> getRSValueWithNull(rs.getLong(a), rs)
-          case java.sql.Types.TINYINT => cols += columnName -> getRSValueWithNull(rs.getLong(a), rs)
-          case java.sql.Types.FLOAT => cols += columnName -> getRSValueWithNull(rs.getDouble(a), rs)
-          case java.sql.Types.DOUBLE => cols += columnName -> getRSValueWithNull(rs.getDouble(a), rs)
-          case java.sql.Types.REAL => cols += columnName -> getRSValueWithNull(rs.getDouble(a), rs)
-          case java.sql.Types.TIMESTAMP => cols += columnName -> getRSValueWithNull(rs.getTimestamp(a), rs)
-          case java.sql.Types.DATE => cols += columnName -> getRSValueWithNull(rs.getTimestamp(a), rs)
-          case java.sql.Types.DECIMAL => cols += columnName -> getRSValueWithNull(rs.getBigDecimal(a), rs)
-          case java.sql.Types.NUMERIC => cols += columnName -> getRSValueWithNull(rs.getBigDecimal(a), rs)
-          case java.sql.Types.BINARY => cols += columnName -> getRSValueWithNull(rs.getBytes(a), rs)
-          case java.sql.Types.VARBINARY => cols += columnName -> getRSValueWithNull(rs.getBytes(a), rs)
-          case java.sql.Types.BOOLEAN => cols += columnName -> getRSValueWithNull(rs.getBoolean(a), rs)
-          case _ => cols += columnName -> getRSValueWithNull(rs.getString(a), rs)
-        }
-      }
-      rows += cols.toMap
-    }
-    rows
-  }
-
-
   private def parseQueryString(query: String): String = {
     query.stripPrefix("Query=")
   }
 
-
-  private def querySQL(query: String, params: Option[Seq[SQLPreparedStatementTypeValue]]): ToResponseMarshallable = {
-    try {
-      // Setup the connection
-      val conn = getConnection()
-      try {
-        // Configure to be Read Only
-        val statement = conn.prepareStatement(query, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
-        applyParams(statement, params)
-
-        // Execute Query
-        val rs = statement.executeQuery()
-
-        // Iterate Over ResultSet
-        QuerySQLResult(Option(getResultSetRows(rs)), Option(""), Option(""), Option("success"))
-      }
-      finally {
-        conn.close
-      }
-    }
-    catch {
-      case e: Exception => {
-        val msg = "ERROR: " + e.getMessage
-        QuerySQLResult(None, Option(msg), Option(""), Option("exception"))
-      }
-    }
-  }
-
-  private def setParam(statement: PreparedStatement, param: SQLPreparedStatementTypeValue): Unit = param.columnType match {
-    case "String" => statement.setString(param.index, AnyConversions.getStringValue(param.value))
-    case "Number" => statement.setBigDecimal(param.index, AnyConversions.getBigDecimalValue(param.value).bigDecimal)
-    case "Boolean" => statement.setBoolean(param.index, AnyConversions.getBooleanValue(param.value))
-    case "Timestamp" => statement.setTimestamp(param.index, Timestamp.valueOf(AnyConversions.getLocalDateTime(param.value)))
-    case "Binary" => statement.setBytes(param.index, java.util.Base64.getDecoder().decode(AnyConversions.getStringValue(param.value)))
-    case _ => deserializationError("Do not understand how to deserialize param")
-  }
-
-
-  private def applyParams(statement: PreparedStatement, params: Option[Seq[SQLPreparedStatementTypeValue]]): Unit = {
-    params match {
-      case Some(x) => x.foreach(p => setParam(statement, p))
-      case None =>
-    }
-
-  }
-
-  private def executePreparedUpdate(conn: Connection, query: String, params: Option[Seq[SQLPreparedStatementTypeValue]]): Unit = {
-    val statement = conn.prepareStatement(query)
-    applyParams(statement, params)
-    statement.executeUpdate()
-  }
-
-  private def executeSQL(executeSQL: Seq[ExecuteSQLRequest]): ExecuteSQLResult = {
-    try {
-      // Setup the connection
-      val conn = getConnection()
-      try {
-        conn.setAutoCommit(false)
-        // Execute Query
-        executeSQL.foreach((x: ExecuteSQLRequest) => executePreparedUpdate(conn, x.sql, x.params))
-
-        conn.commit()
-
-        ExecuteSQLResult(1, Option(""), Option(""), Option("success"))
-      }
-      finally {
-        conn.close
-      }
-    }
-    catch {
-      case e: Exception => {
-        val msg = "ERROR: " + e.getMessage
-        ExecuteSQLResult(0, Option(msg), Option(""), Option("exception"))
-      }
-    }
+  private def JDBC() : JDBCService = {
+    new JDBCService(config)
   }
 
   private val queryRoute = {
     path("select" / Rest) { trace =>
       (post & entity(as[QuerySQLRequest])) { query =>
         complete {
-          querySQL(query.sql, query.params)
+          JDBC.querySQL(query.sql, query.params)
         }
       } ~
         (post & entity(as[String])) { query =>
           complete {
-            querySQL(parseQueryString(URLDecoder.decode(query, "UTF-8")), None)
+            JDBC.querySQL(parseQueryString(URLDecoder.decode(query, "UTF-8")), None)
           }
         }
     }
@@ -232,13 +104,13 @@ trait Service extends Protocols {
     path("execute" / Rest) { trace =>
       (post & entity(as[Seq[ExecuteSQLRequest]])) { executeSeq =>
         complete {
-          executeSQL(executeSeq)
+          JDBC.executeSQL(executeSeq)
         }
       } ~
         (post & entity(as[String])) { executeSeq =>
           complete {
             val q = List(ExecuteSQLRequest(parseQueryString(URLDecoder.decode(executeSeq, "UTF-8")), None))
-            executeSQL(q)
+            JDBC.executeSQL(q)
           }
         }
     }
