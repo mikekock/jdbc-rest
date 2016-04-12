@@ -14,16 +14,6 @@ import spray.json._
 
 import scala.concurrent.ExecutionContextExecutor
 
-case class SQLPreparedStatementTypeValue(columnType: String, index: Int, value: Any)
-
-case class QuerySQLRequest(sql: String, params: Option[Seq[SQLPreparedStatementTypeValue]])
-
-case class QuerySQLResult(result: Option[Seq[Map[String, Any]]], error: Option[String], message: Option[String], status: Option[String])
-
-case class ExecuteSQLRequest(sql: String, params: Option[Seq[SQLPreparedStatementTypeValue]])
-
-case class ExecuteSQLResult(result: Long, error: Option[String], message: Option[String], status: Option[String])
-
 trait Protocols extends DefaultJsonProtocol {
 
   implicit object AnyJsonFormat extends JsonFormat[Any] {
