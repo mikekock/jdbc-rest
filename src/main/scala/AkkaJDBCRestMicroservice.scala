@@ -6,14 +6,12 @@ import akka.actor.ActorSystem
 import akka.event.{Logging, LoggingAdapter}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-//import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model.DateTime
 import akka.http.scaladsl.server.Directives._
 import akka.stream.{ActorMaterializer, Materializer}
 import com.typesafe.config.{Config, ConfigFactory}
 import spray.json._
 
-//import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContextExecutor
 
 case class SQLPreparedStatementTypeValue(columnType: String, index: Int, value: Any)
@@ -115,7 +113,6 @@ trait Service extends Protocols {
         }
     }
   }
-
 
   val routes = encodeResponse {
     logRequestResult("akka-jdbc-rest") {
