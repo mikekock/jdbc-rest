@@ -1,5 +1,5 @@
+import java.sql.{Timestamp}
 import java.net.URLDecoder
-import java.sql._
 import java.time.format.DateTimeFormatter
 
 import akka.actor.ActorSystem

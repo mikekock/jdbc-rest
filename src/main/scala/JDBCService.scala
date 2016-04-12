@@ -1,4 +1,4 @@
-import java.sql._
+import java.sql.{Connection, DriverManager, ResultSet, Timestamp, PreparedStatement}
 
 import com.typesafe.config.Config
 
