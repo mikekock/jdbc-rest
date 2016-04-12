@@ -46,6 +46,7 @@ trait Protocols extends DefaultJsonProtocol {
       case db: Double => JsNumber(db)
       case b: Boolean if b == true => JsTrue
       case b: Boolean if b == false => JsFalse
+      case b: scala.Array[Byte] => JsString(java.util.Base64.getEncoder().encodeToString(b))
       case x => serializationError("Do not understand object of type " + x.getClass.getName)
     }
 
@@ -96,18 +97,6 @@ trait Service extends Protocols {
       v
   }
 
-  private def byteArrayToBase64(b: scala.Array[Byte]): String = {
-    java.util.Base64.getEncoder().encodeToString(b)
-  }
-
-  private def anyByteArrayToBase64(v: Any): Any = {
-    v match {
-      case null => null
-      case b: scala.Array[Byte] => byteArrayToBase64(b)
-      case _ =>
-    }
-  }
-
   private def getResultSetRows(rs: ResultSet): ListBuffer[Map[String, Any]] = {
     val rows = collection.mutable.ListBuffer[Map[String, Any]]()
 
@@ -133,7 +122,7 @@ trait Service extends Protocols {
           cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getBigDecimal(a), rs)
         }
         else if (meta.getColumnType(a) == java.sql.Types.BINARY || meta.getColumnType(a) == java.sql.Types.VARBINARY) {
-          cols += meta.getColumnName(a) -> anyByteArrayToBase64(getRSValueWithNull(rs.getBytes(a), rs))
+          cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getBytes(a), rs)
         }
         else if (meta.getColumnType(a) == java.sql.Types.BOOLEAN) {
           cols += meta.getColumnName(a) -> getRSValueWithNull(rs.getBoolean(a), rs)
