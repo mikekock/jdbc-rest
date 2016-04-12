@@ -174,6 +174,7 @@ trait Service extends Protocols {
     case "Number" => statement.setBigDecimal(param.index, AnyConversions.getBigDecimalValue(param.value).bigDecimal)
     case "Boolean" => statement.setBoolean(param.index, AnyConversions.getBooleanValue(param.value))
     case "Timestamp" => statement.setTimestamp(param.index, Timestamp.valueOf(AnyConversions.getLocalDateTime(param.value)))
+    case "Binary" => statement.setBytes(param.index, java.util.Base64.getDecoder().decode(AnyConversions.getStringValue(param.value)))
     case _ => deserializationError("Do not understand how to deserialize param")
   }
 
