@@ -108,29 +108,22 @@ trait Service extends Protocols {
       for (a <- 1 to columnCount) {
         val columnType = meta.getColumnType(a)
         val columnName = meta.getColumnName(a)
-        if (columnType == java.sql.Types.BIGINT || columnType == java.sql.Types.INTEGER || columnType == java.sql.Types.SMALLINT || columnType == java.sql.Types.TINYINT) {
-          cols += columnName -> getRSValueWithNull(rs.getLong(a), rs)
-        }
-        else if (columnType == java.sql.Types.FLOAT || columnType == java.sql.Types.DOUBLE || columnType == java.sql.Types.REAL) {
-          cols += columnName -> getRSValueWithNull(rs.getDouble(a), rs)
-        }
-        else if (columnType == java.sql.Types.TIMESTAMP) {
-          cols += columnName -> getRSValueWithNull(rs.getTimestamp(a), rs)
-        }
-        else if (columnType == java.sql.Types.DATE) {
-          cols += columnName -> getRSValueWithNull(rs.getTimestamp(a), rs)
-        }
-        else if (columnType == java.sql.Types.DECIMAL || columnType == java.sql.Types.NUMERIC) {
-          cols += columnName -> getRSValueWithNull(rs.getBigDecimal(a), rs)
-        }
-        else if (columnType == java.sql.Types.BINARY || columnType == java.sql.Types.VARBINARY) {
-          cols += columnName -> getRSValueWithNull(rs.getBytes(a), rs)
-        }
-        else if (columnType == java.sql.Types.BOOLEAN) {
-          cols += columnName -> getRSValueWithNull(rs.getBoolean(a), rs)
-        }
-        else {
-          cols += columnName -> getRSValueWithNull(rs.getString(a), rs)
+        columnType match {
+          case java.sql.Types.BIGINT => cols += columnName -> getRSValueWithNull(rs.getLong(a), rs)
+          case java.sql.Types.INTEGER => cols += columnName -> getRSValueWithNull(rs.getLong(a), rs)
+          case java.sql.Types.SMALLINT => cols += columnName -> getRSValueWithNull(rs.getLong(a), rs)
+          case java.sql.Types.TINYINT => cols += columnName -> getRSValueWithNull(rs.getLong(a), rs)
+          case java.sql.Types.FLOAT => cols += columnName -> getRSValueWithNull(rs.getDouble(a), rs)
+          case java.sql.Types.DOUBLE => cols += columnName -> getRSValueWithNull(rs.getDouble(a), rs)
+          case java.sql.Types.REAL => cols += columnName -> getRSValueWithNull(rs.getDouble(a), rs)
+          case java.sql.Types.TIMESTAMP => cols += columnName -> getRSValueWithNull(rs.getTimestamp(a), rs)
+          case java.sql.Types.DATE => cols += columnName -> getRSValueWithNull(rs.getTimestamp(a), rs)
+          case java.sql.Types.DECIMAL => cols += columnName -> getRSValueWithNull(rs.getBigDecimal(a), rs)
+          case java.sql.Types.NUMERIC => cols += columnName -> getRSValueWithNull(rs.getBigDecimal(a), rs)
+          case java.sql.Types.BINARY => cols += columnName -> getRSValueWithNull(rs.getBytes(a), rs)
+          case java.sql.Types.VARBINARY => cols += columnName -> getRSValueWithNull(rs.getBytes(a), rs)
+          case java.sql.Types.BOOLEAN => cols += columnName -> getRSValueWithNull(rs.getBoolean(a), rs)
+          case _ => cols += columnName -> getRSValueWithNull(rs.getString(a), rs)
         }
       }
       rows += cols.toMap
