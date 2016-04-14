@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter
 object AnyConversions {
   def getStringValue(v: Any): String = {
     val i = v match {
+      case null => null
       case x: String => x
       case _ => ""
     }
@@ -12,9 +13,8 @@ object AnyConversions {
   }
 
   def getBigDecimalValue(v: Any): BigDecimal = {
-    val s = v.getClass.getSimpleName
-
     val i = v match {
+      case null => null
       case bd: BigDecimal => bd
       case jbd: java.math.BigDecimal => scala.math.BigDecimal(jbd)
       case x: Double => BigDecimal(x)
@@ -28,6 +28,8 @@ object AnyConversions {
 
   def getBooleanValue(v: Any): Boolean = {
     val i = v match {
+      //case null => null
+      //case None => null
       case x: Boolean => x
       case s: String => s.toBoolean
       case _ => false
@@ -37,6 +39,7 @@ object AnyConversions {
 
   def getLocalDateTime(v: Any): LocalDateTime = {
     val i = v match {
+      case null => null
       case x: LocalDateTime => x
       case s: String => LocalDateTime.parse(s, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.n"))
       case _ => LocalDateTime.now()

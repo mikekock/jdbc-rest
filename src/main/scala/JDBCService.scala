@@ -4,7 +4,7 @@ import com.typesafe.config.Config
 
 import scala.collection.mutable.ListBuffer
 
-case class SQLPreparedStatementTypeValue(columnType: String, index: Int, value: Any)
+case class SQLPreparedStatementTypeValue(columnType: String, index: Int, value: Option[Any])
 
 case class QuerySQLRequest(sql: String, params: Option[Seq[SQLPreparedStatementTypeValue]])
 
@@ -125,13 +125,31 @@ object JDBCService {
     rows
   }
 
-  private def setParam(statement: PreparedStatement, param: SQLPreparedStatementTypeValue): Unit = param.columnType match {
-    case "String" => statement.setString(param.index, AnyConversions.getStringValue(param.value))
-    case "Number" => statement.setBigDecimal(param.index, AnyConversions.getBigDecimalValue(param.value).bigDecimal)
-    case "Boolean" => statement.setBoolean(param.index, AnyConversions.getBooleanValue(param.value))
-    case "Timestamp" => statement.setTimestamp(param.index, Timestamp.valueOf(AnyConversions.getLocalDateTime(param.value)))
-    case "Binary" => statement.setBytes(param.index, java.util.Base64.getDecoder().decode(AnyConversions.getStringValue(param.value)))
-    //case _ => deserializationError("Do not understand how to deserialize param")
+  private def valueOrNull(v: Option[Any]) : Any = {
+    v match {
+      case Some(r) => r
+      case None => null
+    }
+  }
+
+  private def setParam(statement: PreparedStatement, param: SQLPreparedStatementTypeValue): Unit = {
+    /*param.value match {
+      case None => statement.setNull(param.index)
+    }*/
+    val v = valueOrNull(param.value)
+    param.columnType match {
+      case "String" => statement.setString(param.index, AnyConversions.getStringValue(v))
+      case "Number" => {
+        if (v == null)
+          statement.setBigDecimal(param.index, null)
+        else
+          statement.setBigDecimal(param.index, AnyConversions.getBigDecimalValue(v).bigDecimal)
+      }
+      case "Boolean" => statement.setBoolean(param.index, AnyConversions.getBooleanValue(v))
+      case "Timestamp" => statement.setTimestamp(param.index, Timestamp.valueOf(AnyConversions.getLocalDateTime(v)))
+      case "Binary" => statement.setBytes(param.index, java.util.Base64.getDecoder().decode(AnyConversions.getStringValue(v)))
+      //case _ => deserializationError("Do not understand how to deserialize param")
+    }
   }
 
   private def applyParams(statement: PreparedStatement, params: Option[Seq[SQLPreparedStatementTypeValue]]): Unit = {
