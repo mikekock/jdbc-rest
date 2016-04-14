@@ -133,9 +133,6 @@ object JDBCService {
   }
 
   private def setParam(statement: PreparedStatement, param: SQLPreparedStatementTypeValue): Unit = {
-    /*param.value match {
-      case None => statement.setNull(param.index)
-    }*/
     val v = valueOrNull(param.value)
     param.columnType match {
       case "String" => statement.setString(param.index, AnyConversions.getStringValue(v))
