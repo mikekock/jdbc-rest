@@ -34,7 +34,7 @@ trait Protocols extends DefaultJsonProtocol {
       case db: Double => JsNumber(db)
       case b: Boolean if b == true => JsTrue
       case b: Boolean if b == false => JsFalse
-      case b: scala.Array[Byte] => JsString(java.util.Base64.getEncoder().encodeToString(b))
+      case b: Array[Byte] => JsString(java.util.Base64.getEncoder().encodeToString(b))
       case x => serializationError("Do not understand object of type " + x.getClass.getName)
     }
 

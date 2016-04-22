@@ -143,8 +143,18 @@ object JDBCService {
           statement.setBigDecimal(param.index, AnyConversions.getBigDecimalValue(v).bigDecimal)
       }
       case "Boolean" => statement.setBoolean(param.index, AnyConversions.getBooleanValue(v))
-      case "Timestamp" => statement.setTimestamp(param.index, Timestamp.valueOf(AnyConversions.getLocalDateTime(v)))
-      case "Binary" => statement.setBytes(param.index, java.util.Base64.getDecoder().decode(AnyConversions.getStringValue(v)))
+      case "Timestamp" => {
+        if (v == null)
+          statement.setTimestamp(param.index, null)
+        else
+          statement.setTimestamp(param.index, Timestamp.valueOf(AnyConversions.getLocalDateTime(v)))
+      }
+      case "Binary" => {
+        if (v == null)
+          statement.setBytes(param.index, null)
+        else
+          statement.setBytes(param.index, java.util.Base64.getDecoder().decode(AnyConversions.getStringValue(v)))
+      }
       //case _ => deserializationError("Do not understand how to deserialize param")
     }
   }
