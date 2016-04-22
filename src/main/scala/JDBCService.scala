@@ -1,7 +1,5 @@
 import java.sql.{Connection, DriverManager, ResultSet, Timestamp, PreparedStatement}
 
-import com.typesafe.config.Config
-
 import scala.collection.mutable.ListBuffer
 
 case class SQLPreparedStatementTypeValue(columnType: String, index: Int, value: Option[Any])
@@ -14,26 +12,11 @@ case class ExecuteSQLRequest(sql: String, params: Option[Seq[SQLPreparedStatemen
 
 case class ExecuteSQLResult(result: Long, error: Option[String], message: Option[String], status: Option[String])
 
-class JDBCService(c: Config) {
-  var con: Config = c
-
-  def getConnection(): Connection = {
-    val conn_str = con.getString("db.connection")
-    // Get the connection
-    try {
-      DriverManager.getConnection(conn_str)
-    } catch {
-      case e: Exception => {
-        println("ERROR: No connection: " + e.getMessage)
-        throw e
-      }
-    }
-  }
-
-  def querySQL(query: String, params: Option[Seq[SQLPreparedStatementTypeValue]]): QuerySQLResult = {
+object JDBCService {
+  def querySQL(connection: String, query: String, params: Option[Seq[SQLPreparedStatementTypeValue]]): QuerySQLResult = {
     try {
       // Setup the connection
-      val conn = getConnection()
+      val conn = getConnection(connection)
       try {
         // Configure to be Read Only
         val statement = conn.prepareStatement(query, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
@@ -57,10 +40,10 @@ class JDBCService(c: Config) {
     }
   }
 
-  def executeSQL(executeSQL: Seq[ExecuteSQLRequest]): ExecuteSQLResult = {
+  def executeSQL(connection: String, executeSQL: Seq[ExecuteSQLRequest]): ExecuteSQLResult = {
     try {
       // Setup the connection
-      val conn = getConnection()
+      val conn = getConnection(connection)
       try {
         conn.setAutoCommit(false)
         // Execute Query
@@ -81,9 +64,19 @@ class JDBCService(c: Config) {
       }
     }
   }
-}
 
-object JDBCService {
+  private def getConnection(connection: String): Connection = {
+    // Get the connection
+    try {
+      DriverManager.getConnection(connection)
+    } catch {
+      case e: Exception => {
+        println("ERROR: No connection: " + e.getMessage)
+        throw e
+      }
+    }
+  }
+
   private def getRSValueWithNull(v: Any, rs: ResultSet): Any = {
     if (rs.wasNull())
       null

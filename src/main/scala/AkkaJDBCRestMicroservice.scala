@@ -69,22 +69,26 @@ trait Service extends Protocols {
     query.stripPrefix("Query=")
   }
 
-  private def JDBC() : JDBCService = {
-    new JDBCService(config)
+  private def JDBCConnectionString() : String = {
+    config.getString("db.connection")
   }
+
+  def querySQL = JDBCService.querySQL(JDBCConnectionString, _: String, _: Option[Seq[SQLPreparedStatementTypeValue]])
+
+  def executeSQL = JDBCService.executeSQL(JDBCConnectionString, _: Seq[ExecuteSQLRequest])
 
   private val queryRoute = {
     path("select" / Rest) { trace =>
       (post & entity(as[QuerySQLRequest])) { query =>
         complete {
-          JDBC.querySQL(query.sql, query.params)
+          querySQL(query.sql, query.params)
         }
       } ~
-        (post & entity(as[String])) { query =>
-          complete {
-            JDBC.querySQL(parseQueryString(URLDecoder.decode(query, "UTF-8")), None)
-          }
+      (post & entity(as[String])) { query =>
+        complete {
+          querySQL(parseQueryString(URLDecoder.decode(query, "UTF-8")), None)
         }
+      }
     }
   }
 
@@ -92,15 +96,15 @@ trait Service extends Protocols {
     path("execute" / Rest) { trace =>
       (post & entity(as[Seq[ExecuteSQLRequest]])) { executeSeq =>
         complete {
-          JDBC.executeSQL(executeSeq)
+          executeSQL(executeSeq)
         }
       } ~
-        (post & entity(as[String])) { executeSeq =>
-          complete {
-            val q = List(ExecuteSQLRequest(parseQueryString(URLDecoder.decode(executeSeq, "UTF-8")), None))
-            JDBC.executeSQL(q)
-          }
+      (post & entity(as[String])) { executeSeq =>
+        complete {
+          val q = List(ExecuteSQLRequest(parseQueryString(URLDecoder.decode(executeSeq, "UTF-8")), None))
+          executeSQL(q)
         }
+      }
     }
   }
 
